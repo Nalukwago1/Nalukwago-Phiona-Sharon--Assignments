@@ -1,76 +1,69 @@
 #include <iostream>
 #include <string>
-#include <vector>
+using namespace std;
 
-// 1. Abstract Base Class
-class Employee {
+class Payment {
 protected:
-    std::string name;
-    double baseSalary;
-
+    double amount;
 public:
-    Employee(std::string n, double salary) : name(n), baseSalary(salary) {}
-    
-    // Virtual destructor ensures safe memory cleanup via base-class pointers
-    virtual ~Employee() {}
+    Payment(double a) : amount(a) {}
 
-    // Pure virtual function enforcing an interface contract
-    virtual void calculatePay() const = 0; 
+    virtual void pay() const {                 // virtual: can be overridden
+        cout << "Generic payment of UGX " << amount << endl;
+    }
+    virtual ~Payment() {}                      // virtual destructor
 };
 
-// 2. Concrete Derived Class A
-class Developer : public Employee {
-private:
-    double bugBonus;
-
+class MobileMoneyPayment : public Payment {
 public:
-    Developer(std::string n, double salary, double bonus) 
-        : Employee(n, salary), bugBonus(bonus) {}
-
-    // Overriding the virtual function interface
-    void calculatePay() const override {
-        double total = baseSalary + bugBonus;
-        std::cout << "Developer " << name << " total pay: $" << total << "\n";
+    MobileMoneyPayment(double a) : Payment(a) {}
+    void pay() const override {
+        double fee = amount * 0.01;            // 1% fee
+        cout << "Mobile Money: paid UGX " << amount
+             << " + fee UGX " << fee << " via USSD PIN." << endl;
     }
 };
 
-// 3. Concrete Derived Class B
-class Manager : public Employee {
-private:
-    double performanceBonus;
-
+class CardPayment : public Payment {
 public:
-    Manager(std::string n, double salary, double bonus) 
-        : Employee(n, salary), performanceBonus(bonus) {}
-
-    // Overriding the virtual function interface
-    void calculatePay() const override {
-        double total = baseSalary + performanceBonus;
-        std::cout << "Manager " << name << " total pay: $" << total << "\n";
+    CardPayment(double a) : Payment(a) {}
+    void pay() const override {
+        double fee = amount * 0.025;           // 2.5% fee
+        cout << "Card: paid UGX " << amount
+             << " + fee UGX " << fee << " via POS/online." << endl;
     }
 };
+
+class CashPayment : public Payment {
+public:
+    CashPayment(double a) : Payment(a) {}
+    void pay() const override {
+        cout << "Cash: paid UGX " << amount
+             << ", no fee, handed over in person." << endl;
+    }
+};
+
+// Works with ANY payment type through a base-class reference
+void checkout(const Payment& p) {
+    p.pay();
+}
 
 int main() {
-    std::cout << "=== Runtime Polymorphism Demonstration ===\n";
+    // Base-class pointers holding derived objects
+    Payment* list[3];
+    list[0] = new MobileMoneyPayment(50000);
+    list[1] = new CardPayment(120000);
+    list[2] = new CashPayment(20000);
 
-    // Manage distinct derived objects uniformly using a collection of Base pointers
-    std::vector<Employee*> staff;
-    
-    staff.push_back(new Developer("Alice", 7000, 850));
-    staff.push_back(new Manager("Bob", 9500, 2100));
-    staff.push_back(new Developer("Charlie", 7200, 400));
-
-    // Dynamic Dispatch: The same function call triggers completely different 
-    // internal behaviors depending on the actual concrete instance type.
-    for (const auto& emp : staff) {
-        emp->calculatePay(); 
+    cout << "--- Using base-class pointers ---" << endl;
+    for (int i = 0; i < 3; i++) {
+        list[i]->pay();                        // same call, different behaviour
     }
 
-    // Clean up allocated heap memory safely via virtual destructor
-    for (auto emp : staff) {
-        delete emp;
-    }
-    staff.clear();
+    cout << "\n--- Using a base-class reference ---" << endl;
+    CardPayment c(75000);
+    checkout(c);
 
+    for (int i = 0; i < 3; i++) delete list[i];
     return 0;
 }
